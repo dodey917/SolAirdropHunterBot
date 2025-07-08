@@ -2,13 +2,13 @@ import os
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    Application,
+    Updater,
     CommandHandler,
     CallbackQueryHandler,
     MessageHandler,
-    ContextTypes,
+    CallbackContext,
     ConversationHandler,
-    filters
+    Filters
 )
 
 # Set up logging
@@ -22,26 +22,29 @@ logger = logging.getLogger(__name__)
 TASKS, WALLET = range(2)
 BOT_NAME = "SolAirdropHunterBot"
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    keyboard = [[InlineKeyboardButton("✅ I Completed All Tasks", callback_data='tasks_done')]]
+def start(update: Update, context: CallbackContext) -> int:
+    user = update.effective_user
+    keyboard = [
+        [InlineKeyboardButton("✅ I Completed All Tasks", callback_data='tasks_done')]
+    ]
     
-    await update.message.reply_text(
-        f"👋 Hey {update.effective_user.first_name}! I'm {BOT_NAME} 🤖\n\n"
+    update.message.reply_text(
+        f"👋 Hey {user.first_name}! I'm {BOT_NAME} 🤖\n\n"
         "🔥 Get ready for the Mr. Kayblezzy Airdrop!\n\n"
-        "📋 Complete these tasks:\n\n"
+        "📋 Complete these simple tasks:\n\n"
         "1. JOIN Telegram Channel ➜ t.me/Yakstaschannel\n"
         "2. JOIN Telegram Group ➜ t.me/yakstascapital\n"
         "3. FOLLOW Twitter ➜ twitter.com/bigbangdist10\n\n"
-        "Click below when done:",
+        "Click below when you're done:",
         reply_markup=InlineKeyboardMarkup(keyboard),
         disable_web_page_preview=True
     )
     return TASKS
 
-async def tasks_done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+def tasks_done(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
-    await query.answer()
-    await query.edit_message_text(
+    query.answer()
+    query.edit_message_text(
         "🎉 Great job! We trust you didn't skip any tasks!\n\n"
         "💰 Now send your SOLANA wallet address:\n"
         "(Example: So1AmPLEaDDr3sss...)\n\n"
@@ -49,16 +52,17 @@ async def tasks_done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     return WALLET
 
-async def wallet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+def wallet(update: Update, context: CallbackContext) -> int:
+    user = update.effective_user
     wallet = update.message.text.strip()
     
-    # Simple validation
+    # Simple Solana address check
     if len(wallet) < 32 or len(wallet) > 44:
-        await update.message.reply_text("❌ That doesn't look like a Solana address! Try again:")
+        update.message.reply_text("❌ That doesn't look like a Solana address! Try again:")
         return WALLET
     
-    await update.message.reply_text(
-        f"🚀 CONGRATULATIONS {update.effective_user.first_name.upper()}!\n\n"
+    update.message.reply_text(
+        f"🚀 CONGRATULATIONS {user.first_name.upper()}!\n\n"
         "✅ You've qualified for Mr. Kayblezzy's exclusive airdrop!\n"
         "💸 100 SOL is being prepared for transfer to:\n"
         f"`{wallet}`\n\n"
@@ -69,8 +73,8 @@ async def wallet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     return ConversationHandler.END
 
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("❌ Airdrop registration cancelled")
+def cancel(update: Update, context: CallbackContext) -> int:
+    update.message.reply_text("❌ Airdrop registration cancelled")
     return ConversationHandler.END
 
 def main() -> None:
@@ -79,22 +83,24 @@ def main() -> None:
         logger.error("BOT_TOKEN environment variable missing!")
         return
     
-    app = Application.builder().token(TOKEN).build()
+    updater = Updater(TOKEN)
+    dispatcher = updater.dispatcher
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
             TASKS: [CallbackQueryHandler(tasks_done, pattern="^tasks_done$")],
-            WALLET: [MessageHandler(filters.TEXT & ~filters.COMMAND, wallet)],
+            WALLET: [MessageHandler(Filters.text & ~Filters.command, wallet)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
 
-    app.add_handler(conv_handler)
+    dispatcher.add_handler(conv_handler)
     
     # Start the Bot
-    logger.info(f"{BOT_NAME} is starting...")
-    app.run_polling()
+    updater.start_polling()
+    logger.info(f"{BOT_NAME} is now running...")
+    updater.idle()
 
 if __name__ == "__main__":
     main()

@@ -1,1 +1,2 @@
+imghdr_backport
 python-telegram-bot==13.7

@@ -2,7 +2,7 @@ import telebot
 from telebot import types
 
 # Replace with your real bot token
-BOT_TOKEN = 7811627288:AAEpzqhvv5GvEqRjSWhVx-oqwEHiOGcmFss
+BOT_TOKEN = '7811627288:AAEpzqhvv5GvEqRjSWhVx-oqwEHiOGcmFss'
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
